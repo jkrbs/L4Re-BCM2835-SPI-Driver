@@ -12,15 +12,24 @@ using L4Re::chkcap;
 class SPI_Server : public L4::Epiface_t<SPI_Server, SPI> {
     public:
         int op_read(SPI::Rights, l4_uint32_t &res) {
-            printf("called read");
             res = bcm2835_spi_read();
 
             return L4_EOK;
         }
 
-        int op_write(SPI::Rights, l4_uint32_t data) {
-            printf("called write with %04X", data);
+        int op_write(SPI::Rights, l4_uint32_t &data) {
             bcm2835_spi_write(data);
+
+            return L4_EOK;
+        }
+        int op_reads(SPI::Rights, l4_uint32_t &res, l4_uint32_t size) {
+            res = bcm2835_spi_readnb(size);
+
+            return L4_EOK;
+        }
+
+        int op_writes(SPI::Rights, l4_uint32_t &data, l4_uint32_t size) {
+            bcm2835_spi_write(data, size);
 
             return L4_EOK;
         }
@@ -51,7 +60,6 @@ int main(void) {
 
         return -1;
     }
-    sleep(2);
     printf("start spi_driver server loop\n");
     server.loop();
 
