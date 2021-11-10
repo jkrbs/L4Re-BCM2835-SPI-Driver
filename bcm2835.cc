@@ -415,7 +415,7 @@ void bcm2835_aux_spi_write(uint16_t data)
     bcm2835_peri_write(io, (uint32_t) data << 16);
 }
 
-void bcm2835_aux_spi_writenb(const char *tbuf, uint32_t len) {
+void bcm2835_aux_spi_writenb(uint32_t *tbuf, uint32_t len) {
     auto cntl0 = BCM2835_AUX_SPI_CNTL0/4;
     auto cntl1 = BCM2835_AUX_SPI_CNTL1/4;
     auto stat = BCM2835_AUX_SPI_STAT/4;
@@ -467,6 +467,57 @@ void bcm2835_aux_spi_writenb(const char *tbuf, uint32_t len) {
     }
 }
 
+uint32_t bcm2835_aux_spi_readnb(uint32_t* buf, uint32_t len) {
+    auto cntl0 = BCM2835_AUX_SPI_CNTL0/4;
+    auto cntl1 = BCM2835_AUX_SPI_CNTL1/4;
+    auto stat = BCM2835_AUX_SPI_STAT/4;
+    auto txhold = BCM2835_AUX_SPI_TXHOLD/4;
+    auto io = BCM2835_AUX_SPI_IO/4;
+
+    uint32_t rx_len = len;
+    uint32_t count = 0;
+    uint32_t data;
+    char* rx = reinterpret_cast<char*>(buf);
+
+
+    uint32_t _cntl0 = (spi1_speed << BCM2835_AUX_SPI_CNTL0_SPEED_SHIFT);
+    _cntl0 |= BCM2835_AUX_SPI_CNTL0_CS2_N;
+    _cntl0 |= BCM2835_AUX_SPI_CNTL0_ENABLE;
+    _cntl0 |= BCM2835_AUX_SPI_CNTL0_MSBF_OUT;
+    _cntl0 |= BCM2835_AUX_SPI_CNTL0_VAR_WIDTH;
+
+    bcm2835_peri_write(cntl0, _cntl0);
+    bcm2835_peri_write(cntl1, BCM2835_AUX_SPI_CNTL1_MSBF_IN);
+
+    uint32_t read_bytes;
+
+    while (!(bcm2835_peri_read(stat) & BCM2835_AUX_SPI_STAT_BUSY) && (rx_len > 0)) {
+            count = MIN(len, 3);
+            data = bcm2835_peri_read(io);
+
+            if (buf != NULL) {
+                switch (count) {
+                case 3:
+                    *rx++ = (char)((data >> 16) & 0xFF);
+                    /*@fallthrough@*/
+                    /* no break */
+                case 2:
+                    *rx++ = (char)((data >> 8) & 0xFF);
+                    /*@fallthrough@*/
+                    /* no break */
+                case 1:
+                    *rx++ = (char)((data >> 0) & 0xFF);
+                }
+            }
+
+            read_bytes += count;
+
+    rx_len -= count;
+    
+    }
+    return read_bytes;
+}
+
 void bcm2835_aux_spi_transfernb(const char *tbuf, char *rbuf, uint32_t len) {
     auto cntl0 = BCM2835_AUX_SPI_CNTL0/4;
     auto cntl1 = BCM2835_AUX_SPI_CNTL1/4;
@@ -477,7 +528,8 @@ void bcm2835_aux_spi_transfernb(const char *tbuf, char *rbuf, uint32_t len) {
 	char *tx = (char *)tbuf;
 	char *rx = (char *)rbuf;
 	uint32_t tx_len = len;
-	uint32_t rx_len = len;
+    uint32_t rx_len = len;
+	
 	uint32_t count;
 	uint32_t data;
 	uint32_t i;
@@ -536,7 +588,7 @@ void bcm2835_aux_spi_transfernb(const char *tbuf, char *rbuf, uint32_t len) {
 			rx_len -= count;
 		}
 
-		while (!(bcm2835_peri_read(stat) & BCM2835_AUX_SPI_STAT_BUSY) && (rx_len > 0)) {
+	 	while (!(bcm2835_peri_read(stat) & BCM2835_AUX_SPI_STAT_BUSY) && (rx_len > 0)) {
 			count = MIN(rx_len, 3);
 			data = bcm2835_peri_read(io);
 
@@ -598,7 +650,7 @@ uint8_t bcm2835_aux_spi_transfer(uint8_t value)
     return data;
 }
 
-uint32_t bcm2835_spi_read() {
+uint32_t bcm2835_aux_spi_read() {
     auto stat = BCM2835_AUX_SPI_STAT/4;
     auto io = BCM2835_AUX_SPI_IO/4;
 

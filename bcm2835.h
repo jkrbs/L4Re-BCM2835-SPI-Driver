@@ -1831,7 +1831,7 @@ extern "C" {
       \param[in] buf Buffer of bytes to send.
       \param[in] len Number of bytes in the tbuf buffer, and the number of bytes to send
     */
-    extern void bcm2835_aux_spi_writenb(const char *buf, uint32_t len);
+    extern void bcm2835_aux_spi_writenb(uint32_t *buf, uint32_t len);
 
     /*! Transfers any number of bytes to and from the AUX SPI slave
       using bcm2835_aux_spi_transfernb.
@@ -1842,7 +1842,8 @@ extern "C" {
     */
     extern void bcm2835_aux_spi_transfern(char *buf, uint32_t len);
 
-    uint32_t bcm2835_spi_read();   
+    uint32_t bcm2835_aux_spi_read();
+    uint32_t bcm2835_aux_spi_readnb(uint32_t* buf, uint32_t len);
     void bcm2835_aux_spi_reset();
 
     /*! Transfers any number of bytes to and from the AUX SPI slave.
