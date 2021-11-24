@@ -119,6 +119,22 @@ static uint8_t bcm2835_correct_order(uint8_t b) {
     return b;
 }
 
+#ifdef BCM2835_HAVE_LIBCAP
+#include <sys/capability.h>
+static int bcm2835_has_capability(cap_value_t capability) {
+  int ok = 0;
+  cap_t cap = cap_get_proc();
+  if (cap) {
+    cap_flag_value_t value;
+    if (cap_get_flag(cap, capability, CAP_EFFECTIVE, &value) == 0 &&
+        value == CAP_SET)
+      ok = 1;
+    cap_free(cap);
+  }
+  return ok;
+}
+#endif
+
 /*
 // Low level register access functions
 */
@@ -761,6 +777,14 @@ void bcm2835_spi_setChipSelectPolarity(uint8_t cs, uint8_t active) {
 }
 
 void bcm2835_spi_write(uint16_t data) {
+#if 0
+	char buf[2];
+
+	buf[0] = data >> 8;
+	buf[1] = data & 0xFF;
+
+	bcm2835_spi_transfern(buf, 2);
+#else
   volatile uint32_t *paddr = bcm2835_spi0 + BCM2835_SPI0_CS / 4;
   volatile uint32_t *fifo = bcm2835_spi0 + BCM2835_SPI0_FIFO / 4;
 
@@ -784,6 +808,7 @@ void bcm2835_spi_write(uint16_t data) {
 
   /* Set TA = 0, and also set the barrier */
   bcm2835_peri_set_bits(paddr, 0, BCM2835_SPI0_CS_TA);
+#endif
 }
 
 int bcm2835_aux_spi_begin(void) {
@@ -1558,11 +1583,34 @@ void bcm2835_pwm_set_data(uint8_t channel, uint32_t data) {
     bcm2835_peri_write_nb(bcm2835_pwm + BCM2835_PWM1_DATA, data);
 }
 
+/* Allocate page-aligned memory. */
+void *malloc_aligned(size_t size) {
+  void *mem;
+  errno = posix_memalign(&mem, BCM2835_PAGE_SIZE, size);
+  return (errno ? NULL : mem);
+}
+
+/* Map 'size' bytes starting at 'off' in file 'fd' to memory.
+// Return mapped address on success, MAP_FAILED otherwise.
+// On error print message.
+*/
+static void *mapmem(const char *msg, size_t size, int fd, off_t off) {
+  void *map = mmap(NULL, size, (PROT_READ | PROT_WRITE), MAP_SHARED, fd, off);
+  if (map == MAP_FAILED)
+    fprintf(stderr, "bcm2835_init: %s mmap failed: %s\n", msg, strerror(errno));
+  return map;
+}
+
+static void unmapmem(void **pmem, size_t size) {
+  if (*pmem == MAP_FAILED)
+    return;
+  munmap(*pmem, size);
+  *pmem = MAP_FAILED;
+}
+
 /* Initialise this library. */
 int bcm2835_init(void) {
-
-  // here the offset into the dataspace
-  bcm2835_peripherals = 0;
+  bcm2835_peripherals = (uint32_t *)BCM2835_RPI4_PERI_BASE;
 
   bcm2835_pads = bcm2835_peripherals + BCM2835_GPIO_PADS / 4;
   bcm2835_clk = bcm2835_peripherals + BCM2835_CLOCK_BASE / 4;
@@ -1574,9 +1622,105 @@ int bcm2835_init(void) {
   bcm2835_st = bcm2835_peripherals + BCM2835_ST_BASE / 4;
   bcm2835_aux = bcm2835_peripherals + BCM2835_AUX_BASE / 4;
   bcm2835_spi1 = bcm2835_peripherals + BCM2835_SPI1_BASE / 4;
-
-  return 1; /* Success */
+  return 1;
 }
 
 /* Close this library and deallocate everything */
-int bcm2835_close(void) { return 1; /* Success */ }
+int bcm2835_close(void) {
+  if (debug)
+    return 1; /* Success */
+
+  unmapmem((void **)&bcm2835_peripherals, bcm2835_peripherals_size);
+  bcm2835_peripherals = MAP_FAILED;
+  bcm2835_gpio = MAP_FAILED;
+  bcm2835_pwm = MAP_FAILED;
+  bcm2835_clk = MAP_FAILED;
+  bcm2835_pads = MAP_FAILED;
+  bcm2835_spi0 = MAP_FAILED;
+  bcm2835_bsc0 = MAP_FAILED;
+  bcm2835_bsc1 = MAP_FAILED;
+  bcm2835_st = MAP_FAILED;
+  bcm2835_aux = MAP_FAILED;
+  bcm2835_spi1 = MAP_FAILED;
+  return 1; /* Success */
+}
+
+#ifdef BCM2835_TEST
+/* this is a simple test program that prints out what it will do rather than
+// actually doing it
+*/
+int main(int argc, char **argv) {
+  /* Be non-destructive */
+  bcm2835_set_debug(1);
+
+  if (!bcm2835_init())
+    return 1;
+
+  /* Configure some GPIO pins fo some testing
+  // Set RPI pin P1-11 to be an output
+  */
+  bcm2835_gpio_fsel(RPI_GPIO_P1_11, BCM2835_GPIO_FSEL_OUTP);
+  /* Set RPI pin P1-15 to be an input */
+  bcm2835_gpio_fsel(RPI_GPIO_P1_15, BCM2835_GPIO_FSEL_INPT);
+  /*  with a pullup */
+  bcm2835_gpio_set_pud(RPI_GPIO_P1_15, BCM2835_GPIO_PUD_UP);
+  /* And a low detect enable */
+  bcm2835_gpio_len(RPI_GPIO_P1_15);
+  /* and input hysteresis disabled on GPIOs 0 to 27 */
+  bcm2835_gpio_set_pad(BCM2835_PAD_GROUP_GPIO_0_27,
+                       BCM2835_PAD_SLEW_RATE_UNLIMITED | BCM2835_PAD_DRIVE_8mA);
+
+#if 1
+  /* Blink */
+  while (1) {
+    /* Turn it on */
+    bcm2835_gpio_write(RPI_GPIO_P1_11, HIGH);
+
+    /* wait a bit */
+    bcm2835_delay(500);
+
+    /* turn it off */
+    bcm2835_gpio_write(RPI_GPIO_P1_11, LOW);
+
+    /* wait a bit */
+    bcm2835_delay(500);
+  }
+#endif
+
+#if 0
+    /* Read input */
+    while (1)
+    {
+	/* Read some data */
+	uint8_t value = bcm2835_gpio_lev(RPI_GPIO_P1_15);
+	printf("read from pin 15: %d\n", value);
+	
+	/* wait a bit */
+	bcm2835_delay(500);
+    }
+#endif
+
+#if 0
+    /* Look for a low event detection
+    // eds will be set whenever pin 15 goes low
+    */
+    while (1)
+    {
+	if (bcm2835_gpio_eds(RPI_GPIO_P1_15))
+	{
+	    /* Now clear the eds flag by setting it to 1 */
+	    bcm2835_gpio_set_eds(RPI_GPIO_P1_15);
+	    printf("low event detect for pin 15\n");
+	}
+
+	/* wait a bit */
+	bcm2835_delay(500);
+    }
+#endif
+
+  if (!bcm2835_close())
+    return 1;
+
+  return 0;
+}
+#endif

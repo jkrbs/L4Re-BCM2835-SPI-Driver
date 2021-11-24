@@ -620,13 +620,14 @@
 #ifndef BCM2835_H
 #define BCM2835_H
 
-#include "helper.h"
 #include <stdint.h>
 
 /* Some compilers need this, as reported by Sam James */
 #include <sys/types.h>
 /* Needed to compile with gcc -std=c99, as reported by John Blaiklock.*/
 #include <fcntl.h>
+
+#include "helper.h"
 
 #define BCM2835_VERSION 10070 /* Version 1.70 */
 
@@ -708,7 +709,6 @@
 #define BCM2835_BSC1_BASE				0x804000
 
 #include <stdlib.h>
-
 
 /*! Physical address and size of the peripherals block
   May be overridden on RPi2
@@ -1831,7 +1831,7 @@ extern "C" {
       \param[in] buf Buffer of bytes to send.
       \param[in] len Number of bytes in the tbuf buffer, and the number of bytes to send
     */
-    extern void bcm2835_aux_spi_writenb(uint32_t *buf, uint32_t len);
+    extern void bcm2835_aux_spi_writenb(const char *buf, uint32_t len);
 
     /*! Transfers any number of bytes to and from the AUX SPI slave
       using bcm2835_aux_spi_transfernb.
@@ -1841,10 +1841,6 @@ extern "C" {
       \sa bcm2835_aux_spi_transfer()
     */
     extern void bcm2835_aux_spi_transfern(char *buf, uint32_t len);
-
-    uint32_t bcm2835_aux_spi_read();
-    uint32_t bcm2835_aux_spi_readnb(uint32_t* buf, uint32_t len);
-    void bcm2835_aux_spi_reset();
 
     /*! Transfers any number of bytes to and from the AUX SPI slave.
       Asserts the CE2 pin during the transfer.
