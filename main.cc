@@ -12,16 +12,35 @@ using L4Re::chksys;
 
 L4::Cap<L4vbus::Vbus> vbus;
 
-class SPI_Server : public L4::Epiface_t<SPI_Server, SPI> {
+class SPI_Server : public L4::Epiface_t<SPI_Server, SPI>
+{
 public:
+  int op_write(SPI::Rights, l4_uint8_t tbuf, l4_uint32_t size)
+  {
+    bcm2835_spi_writenb((char*)&tbuf, size);
+
+    return L4_EOK;
+  };
+  int op_read(SPI::Rights, l4_uint8_t &rbuf, l4_uint32_t size)
+  {
+    printf("op_read was called with &rbuf=%p, rbuf=%x and len=%d\n", &rbuf, rbuf, size);
+    fflush(NULL);
+    bcm2835_spi_readnb((char*)&rbuf, size);
+    printf("returning %x\n", rbuf);
+    fflush(NULL);
+    return L4_EOK;
+  };
   int op_transfer(SPI::Rights, l4_uint8_t &tbuf, l4_uint8_t &rbuf,
-                  l4_uint32_t size) {
+                  l4_uint32_t size)
+  {
     bcm2835_spi_transfernb((char *)&tbuf, (char *)&rbuf, size);
     return L4_EOK;
   };
 
-  int op_register_irq(SPI::Rights, L4::Ipc::Snd_fpage const &irq) {
-    if(! irq.cap_received()) {
+  int op_register_irq(SPI::Rights, L4::Ipc::Snd_fpage const &irq)
+  {
+    if (!irq.cap_received())
+    {
       printf("failed to recieve irq cap");
       return L4_EINVAL;
     }
@@ -38,10 +57,11 @@ public:
 static L4Re::Util::Registry_server<L4Re::Util::Br_manager_hooks> server;
 L4::Io_register_block_mmio *spi;
 
-int main(void) {
+int main(void)
+{
   printf("starting spi driver\n");
   L4::Cap<L4vbus::Vbus> vbus = chkcap(L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"),
-                     "vbus cap not valid");
+                                      "vbus cap not valid");
 
   unsigned long vaddr;
   chksys(L4Re::Env::env()->rm()->attach(
@@ -57,13 +77,15 @@ int main(void) {
 
   SPI_Server spiserver;
 
-  if (!server.registry()->register_obj(&spiserver, "spi").is_valid()) {
+  if (!server.registry()->register_obj(&spiserver, "spi").is_valid())
+  {
     printf("Error while registering server object");
 
     return -1;
   }
   bcm2835_init();
-  if (!bcm2835_spi_begin()) {
+  if (!bcm2835_spi_begin())
+  {
     printf("bcm2835_spi_begin failed. Are you running as root??\n");
     return 1;
   }
@@ -71,7 +93,7 @@ int main(void) {
   bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);                   // The default
   bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_65536); // The default
   bcm2835_spi_chipSelect(BCM2835_SPI_CS1);                      // The default
-  bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS1, LOW);      // the default
+  bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS1, HIGH);      // the default
   printf("start spi_driver server loop\n");
   server.loop();
 

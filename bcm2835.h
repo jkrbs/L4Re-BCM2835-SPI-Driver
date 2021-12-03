@@ -1783,6 +1783,8 @@ extern "C" {
     */
     extern void bcm2835_spi_writenb(const char* buf, uint32_t len);
 
+    extern void bcm2835_spi_readnb(char *rbuf, uint32_t len);
+
     /*! Transfers half-word to the currently selected SPI slave.
       Asserts the currently selected CS pins (as previously set by bcm2835_spi_chipSelect)
       during the transfer.
