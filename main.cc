@@ -14,26 +14,40 @@ L4::Cap<L4vbus::Vbus> vbus;
 
 class SPI_Server : public L4::Epiface_t<SPI_Server, SPI>
 {
-public:
-  int op_write(SPI::Rights, l4_uint8_t tbuf, l4_uint32_t size)
-  {
-    bcm2835_spi_writenb((char*)&tbuf, size);
 
+private:
+l4_uint64_t data = 0;
+
+public:
+  int op_write(SPI::Rights, l4_uint8_t &tbuf, l4_uint32_t size)
+  {
+    if(size > 8) return L4_EINVAL;
+    char* t = reinterpret_cast<char*>(&tbuf);
+    l4_uint64_t rbuf = 0;
+    char* r = reinterpret_cast<char*>(&rbuf);
+    #ifdef DEBUG
+    printf("&rbuf: %p, &tbuf: %p, rbuf %x, tbuf: %x, len: %d\n", &rbuf, &t, rbuf, t, size);
+    fflush(NULL);
+    #endif
+    bcm2835_spi_transfernb(t, r, size);
+    data = rbuf;
     return L4_EOK;
   };
-  int op_read(SPI::Rights, l4_uint8_t &rbuf, l4_uint32_t size)
+  int op_read(SPI::Rights, l4_uint64_t &rbuf, l4_uint32_t size)
   {
-    printf("op_read was called with &rbuf=%p, rbuf=%x and len=%d\n", &rbuf, rbuf, size);
-    fflush(NULL);
-    bcm2835_spi_readnb((char*)&rbuf, size);
-    printf("returning %x\n", rbuf);
-    fflush(NULL);
+    rbuf= data;
     return L4_EOK;
   };
-  int op_transfer(SPI::Rights, l4_uint8_t &tbuf, l4_uint8_t &rbuf,
-                  l4_uint32_t size)
+  int op_transfer(SPI::Rights, l4_uint64_t &tbuf, l4_uint64_t &rbuf, l4_uint32_t size)
   {
-    bcm2835_spi_transfernb((char *)&tbuf, (char *)&rbuf, size);
+    char* t = reinterpret_cast<char*>(&tbuf);
+    char* r = reinterpret_cast<char*>(&rbuf);
+    #ifdef DEBUG
+    printf("&rbuf: %p, &tbuf: %p, rbuf %x, tbuf: %x, len: %d\n", &rbuf, &t, rbuf, t, size);
+    fflush(NULL);
+    #endif
+    bcm2835_spi_transfernb(t, r, size);
+    data = rbuf;
     return L4_EOK;
   };
 
@@ -93,7 +107,7 @@ int main(void)
   bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);                   // The default
   bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_65536); // The default
   bcm2835_spi_chipSelect(BCM2835_SPI_CS1);                      // The default
-  bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS1, HIGH);      // the default
+  bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS1, LOW);      // the default
   printf("start spi_driver server loop\n");
   server.loop();
 
