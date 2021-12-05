@@ -656,15 +656,6 @@ uint8_t bcm2835_spi_transfer(uint8_t value) {
   return ret;
 }
 
-/* Reads an number of bytes from SPI */
-void bcm2835_spi_readnb(char *rbuf, uint32_t len) {
-  char* tbuf= static_cast<char*>(malloc(sizeof(len* sizeof(uint8_t))));
-  memset(tbuf, 0, len);
-  bcm2835_spi_transfernb(tbuf, rbuf, len);
-
-  free(tbuf);
-}
-
 /* Writes (and reads) an number of bytes to SPI */
 void bcm2835_spi_transfernb(char *tbuf, char *rbuf, uint32_t len) {
   volatile uint32_t *paddr = bcm2835_spi0 + BCM2835_SPI0_CS / 4;
