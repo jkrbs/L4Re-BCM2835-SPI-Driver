@@ -1,65 +1,65 @@
-#include <l4/re/util/br_manager>
-#include <l4/re/util/object_registry>
-#include <l4/sys/cxx/ipc_epiface>
-#include <l4/sys/irq>
-#include <l4/re/util/cap_alloc>
 #include "bcm2835.h"
 #include "spi.h"
 #include "spi_driver.h"
+#include <l4/re/util/br_manager>
+#include <l4/re/util/cap_alloc>
+#include <l4/re/util/object_registry>
+#include <l4/sys/cxx/ipc_epiface>
+#include <l4/sys/irq>
 
 using L4Re::chkcap;
 using L4Re::chksys;
 
 L4::Cap<L4vbus::Vbus> vbus;
 
-class SPI_Server : public L4::Epiface_t<SPI_Server, SPI>
-{
+class SPI_Server : public L4::Epiface_t<SPI_Server, SPI> {
 
 private:
-l4_uint64_t data = 0;
+  l4_uint64_t data = 0;
 
 public:
-  int op_write(SPI::Rights, l4_uint8_t &tbuf, l4_uint32_t size)
-  {
-    if(size > 8) return L4_EINVAL;
-    char* t = reinterpret_cast<char*>(&tbuf);
+  int op_write(SPI::Rights, l4_uint8_t &tbuf, l4_uint32_t size) {
+    if (size > 8)
+      return L4_EINVAL;
+    char *t = reinterpret_cast<char *>(&tbuf);
     l4_uint64_t rbuf = 0;
-    char* r = reinterpret_cast<char*>(&rbuf);
-    #ifdef DEBUG
-    printf("&rbuf: %p, &tbuf: %p, rbuf %x, tbuf: %x, len: %d\n", &rbuf, &t, rbuf, t, size);
+    char *r = reinterpret_cast<char *>(&rbuf);
+#ifdef DEBUG
+    printf("&rbuf: %p, &tbuf: %p, rbuf %x, tbuf: %x, len: %d\n", &rbuf, &t,
+           rbuf, t, size);
     fflush(NULL);
-    #endif
+#endif
     bcm2835_spi_transfernb(t, r, size);
     data = rbuf;
+
     return L4_EOK;
   };
-  int op_read(SPI::Rights, l4_uint64_t &rbuf, l4_uint32_t size)
-  {
-    rbuf= data;
+  int op_read(SPI::Rights, l4_uint64_t &rbuf, l4_uint32_t size) {
+    rbuf = data;
     return L4_EOK;
   };
-  int op_transfer(SPI::Rights, l4_uint64_t &tbuf, l4_uint64_t &rbuf, l4_uint32_t size)
-  {
-    char* t = reinterpret_cast<char*>(&tbuf);
-    char* r = reinterpret_cast<char*>(&rbuf);
-    #ifdef DEBUG
-    printf("&rbuf: %p, &tbuf: %p, rbuf %x, tbuf: %x, len: %d\n", &rbuf, &t, rbuf, t, size);
+  int op_transfer(SPI::Rights, l4_uint64_t &tbuf, l4_uint64_t &rbuf,
+                  l4_uint32_t size) {
+    char *t = reinterpret_cast<char *>(&tbuf);
+    char *r = reinterpret_cast<char *>(&rbuf);
+#ifdef DEBUG
+    printf("&rbuf: %p, &tbuf: %p, rbuf %x, tbuf: %x, len: %d\n", &rbuf, &t,
+           rbuf, t, size);
     fflush(NULL);
-    #endif
+#endif
     bcm2835_spi_transfernb(t, r, size);
     data = rbuf;
     return L4_EOK;
   };
 
-  int op_register_irq(SPI::Rights, L4::Ipc::Snd_fpage const &irq)
-  {
-    if (!irq.cap_received())
-    {
+  int op_register_irq(SPI::Rights, L4::Ipc::Snd_fpage const &irq) {
+    if (!irq.cap_received()) {
       printf("failed to recieve irq cap");
       return L4_EINVAL;
     }
 
-    L4::Cap<L4::Irq> rirq = chkcap(server_iface()->rcv_cap<L4::Irq>(0), "failed to recieve irq");
+    L4::Cap<L4::Irq> rirq =
+        chkcap(server_iface()->rcv_cap<L4::Irq>(0), "failed to recieve irq");
     chksys(server_iface()->realloc_rcv_cap(0), "failed to reallocate cap");
 
     vbus->bind(54, rirq);
@@ -71,11 +71,10 @@ public:
 static L4Re::Util::Registry_server<L4Re::Util::Br_manager_hooks> server;
 L4::Io_register_block_mmio *spi;
 
-int main(void)
-{
+int main(void) {
   printf("starting spi driver\n");
-  L4::Cap<L4vbus::Vbus> vbus = chkcap(L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"),
-                                      "vbus cap not valid");
+  L4::Cap<L4vbus::Vbus> vbus = chkcap(
+      L4Re::Env::env()->get_cap<L4vbus::Vbus>("vbus"), "vbus cap not valid");
 
   unsigned long vaddr;
   chksys(L4Re::Env::env()->rm()->attach(
@@ -91,23 +90,21 @@ int main(void)
 
   SPI_Server spiserver;
 
-  if (!server.registry()->register_obj(&spiserver, "spi").is_valid())
-  {
+  if (!server.registry()->register_obj(&spiserver, "spi").is_valid()) {
     printf("Error while registering server object");
 
     return -1;
   }
   bcm2835_init();
-  if (!bcm2835_spi_begin())
-  {
+  if (!bcm2835_spi_begin()) {
     printf("bcm2835_spi_begin failed. Are you running as root??\n");
     return 1;
   }
-  bcm2835_spi_setBitOrder(BCM2835_SPI_BIT_ORDER_MSBFIRST);      // The default
-  bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);                   // The default
-  bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_65536); // The default
-  bcm2835_spi_chipSelect(BCM2835_SPI_CS1);                      // The default
-  bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS1, LOW);      // the default
+  bcm2835_spi_setBitOrder(BCM2835_SPI_BIT_ORDER_MSBFIRST); // The default
+  bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);              // The default
+  bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_512);
+  bcm2835_spi_chipSelect(BCM2835_SPI_CS1);                 // The default
+  bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS1, LOW); // the default
   printf("start spi_driver server loop\n");
   server.loop();
 
