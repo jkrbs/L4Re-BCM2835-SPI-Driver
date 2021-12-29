@@ -7,6 +7,9 @@
 #include <l4/sys/cxx/ipc_epiface>
 #include <l4/sys/irq>
 
+#include<string>
+#include<cstring>
+
 using L4Re::chkcap;
 using L4Re::chksys;
 
@@ -15,14 +18,14 @@ L4::Cap<L4vbus::Vbus> vbus;
 class SPI_Server : public L4::Epiface_t<SPI_Server, SPI> {
 
 private:
-  l4_uint64_t data = 0;
+  l4_uint8_t *data = nullptr;
 
 public:
-  int op_write(SPI::Rights, l4_uint8_t &tbuf, l4_uint32_t size) {
+  int op_write(SPI::Rights, L4::Ipc::Array_ref<l4_uint8_t> tbuf, l4_uint32_t size) {
     if (size > 8)
       return L4_EINVAL;
     char *t = reinterpret_cast<char *>(&tbuf);
-    l4_uint64_t rbuf = 0;
+    char* rbuf = new char[size];
     char *r = reinterpret_cast<char *>(&rbuf);
 #ifdef DEBUG
     printf("&rbuf: %p, &tbuf: %p, rbuf %x, tbuf: %x, len: %d\n", &rbuf, &t,
@@ -30,15 +33,16 @@ public:
     fflush(NULL);
 #endif
     bcm2835_spi_transfernb(t, r, size);
-    data = rbuf;
+    data = reinterpret_cast<l4_uint8_t*>(rbuf);
 
     return L4_EOK;
   };
-  int op_read(SPI::Rights, l4_uint64_t &rbuf, l4_uint32_t size) {
-    rbuf = data;
+  int op_read(SPI::Rights, L4::Ipc::Array_ref<l4_uint8_t> &rbuf, l4_uint32_t size) {
+    std::memcpy(rbuf.data, data, MIN(size, rbuf.length));
+    delete data;
     return L4_EOK;
   };
-  int op_transfer(SPI::Rights, l4_uint64_t &tbuf, l4_uint64_t &rbuf,
+  int op_transfer(SPI::Rights, L4::Ipc::Array_ref<const l4_uint8_t, l4_uint32_t> tbuf, L4::Ipc::Array_ref<l4_uint8_t, l4_uint32_t> &rbuf,
                   l4_uint32_t size) {
     char *t = reinterpret_cast<char *>(&tbuf);
     char *r = reinterpret_cast<char *>(&rbuf);
@@ -48,7 +52,7 @@ public:
     fflush(NULL);
 #endif
     bcm2835_spi_transfernb(t, r, size);
-    data = rbuf;
+    data = reinterpret_cast<l4_uint8_t*>(r);
     return L4_EOK;
   };
 
