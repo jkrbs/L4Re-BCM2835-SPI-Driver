@@ -1152,66 +1152,6 @@ typedef enum
     BCM2835_SPI_CLOCK_DIVIDER_1     = 1        /*!< 1 = 3.814697260kHz on Rpi2, 6.1035156kHz on RPI3, same as 0/65536 */
 } bcm2835SPIClockDivider;
 
-/* Defines for I2C
-   GPIO register offsets from BCM2835_BSC*_BASE.
-   Offsets into the BSC Peripheral block in bytes per 3.1 BSC Register Map
-*/
-#define BCM2835_BSC_C 			0x0000 /*!< BSC Master Control */
-#define BCM2835_BSC_S 			0x0004 /*!< BSC Master Status */
-#define BCM2835_BSC_DLEN		0x0008 /*!< BSC Master Data Length */
-#define BCM2835_BSC_A 			0x000c /*!< BSC Master Slave Address */
-#define BCM2835_BSC_FIFO		0x0010 /*!< BSC Master Data FIFO */
-#define BCM2835_BSC_DIV			0x0014 /*!< BSC Master Clock Divider */
-#define BCM2835_BSC_DEL			0x0018 /*!< BSC Master Data Delay */
-#define BCM2835_BSC_CLKT		0x001c /*!< BSC Master Clock Stretch Timeout */
-
-/* Register masks for BSC_C */
-#define BCM2835_BSC_C_I2CEN 		0x00008000 /*!< I2C Enable, 0 = disabled, 1 = enabled */
-#define BCM2835_BSC_C_INTR 		0x00000400 /*!< Interrupt on RX */
-#define BCM2835_BSC_C_INTT 		0x00000200 /*!< Interrupt on TX */
-#define BCM2835_BSC_C_INTD 		0x00000100 /*!< Interrupt on DONE */
-#define BCM2835_BSC_C_ST 		0x00000080 /*!< Start transfer, 1 = Start a new transfer */
-#define BCM2835_BSC_C_CLEAR_1 		0x00000020 /*!< Clear FIFO Clear */
-#define BCM2835_BSC_C_CLEAR_2 		0x00000010 /*!< Clear FIFO Clear */
-#define BCM2835_BSC_C_READ 		0x00000001 /*!<	Read transfer */
-
-/* Register masks for BSC_S */
-#define BCM2835_BSC_S_CLKT 		0x00000200 /*!< Clock stretch timeout */
-#define BCM2835_BSC_S_ERR 		0x00000100 /*!< ACK error */
-#define BCM2835_BSC_S_RXF 		0x00000080 /*!< RXF FIFO full, 0 = FIFO is not full, 1 = FIFO is full */
-#define BCM2835_BSC_S_TXE 		0x00000040 /*!< TXE FIFO full, 0 = FIFO is not full, 1 = FIFO is full */
-#define BCM2835_BSC_S_RXD 		0x00000020 /*!< RXD FIFO contains data */
-#define BCM2835_BSC_S_TXD 		0x00000010 /*!< TXD FIFO can accept data */
-#define BCM2835_BSC_S_RXR 		0x00000008 /*!< RXR FIFO needs reading (full) */
-#define BCM2835_BSC_S_TXW 		0x00000004 /*!< TXW FIFO needs writing (full) */
-#define BCM2835_BSC_S_DONE 		0x00000002 /*!< Transfer DONE */
-#define BCM2835_BSC_S_TA 		0x00000001 /*!< Transfer Active */
-
-#define BCM2835_BSC_FIFO_SIZE   	16 /*!< BSC FIFO size */
-
-/*! \brief bcm2835I2CClockDivider
-  Specifies the divider used to generate the I2C clock from the system clock.
-  Clock divided is based on nominal base clock rate of 250MHz
-*/
-typedef enum
-{
-    BCM2835_I2C_CLOCK_DIVIDER_2500   = 2500,      /*!< 2500 = 10us = 100 kHz */
-    BCM2835_I2C_CLOCK_DIVIDER_626    = 626,       /*!< 622 = 2.504us = 399.3610 kHz */
-    BCM2835_I2C_CLOCK_DIVIDER_150    = 150,       /*!< 150 = 60ns = 1.666 MHz (default at reset) */
-    BCM2835_I2C_CLOCK_DIVIDER_148    = 148        /*!< 148 = 59ns = 1.689 MHz */
-} bcm2835I2CClockDivider;
-
-/*! \brief bcm2835I2CReasonCodes
-  Specifies the reason codes for the bcm2835_i2c_write and bcm2835_i2c_read functions.
-*/
-typedef enum
-{
-    BCM2835_I2C_REASON_OK   	     = 0x00,      /*!< Success */
-    BCM2835_I2C_REASON_ERROR_NACK    = 0x01,      /*!< Received a NACK */
-    BCM2835_I2C_REASON_ERROR_CLKT    = 0x02,      /*!< Received Clock Stretch Timeout */
-    BCM2835_I2C_REASON_ERROR_DATA    = 0x04       /*!< Not all data is sent / received */
-} bcm2835I2CReasonCodes;
-
 /* Defines for ST
    GPIO register offsets from BCM2835_ST_BASE.
    Offsets into the ST Peripheral block in bytes per 12.1 System Timer Registers
@@ -1223,66 +1163,9 @@ typedef enum
    The system timer free-running counter upper register is a read-only register that returns the current value
    of the upper 32-bits of the free running counter.
 */
-#define BCM2835_ST_CS 			0x0000 /*!< System Timer Control/Status */
-#define BCM2835_ST_CLO 			0x0004 /*!< System Timer Counter Lower 32 bits */
-#define BCM2835_ST_CHI 			0x0008 /*!< System Timer Counter Upper 32 bits */
-
-/*! @} */
-
-
-/* Defines for PWM, word offsets (ie 4 byte multiples) */
-#define BCM2835_PWM_CONTROL 0
-#define BCM2835_PWM_STATUS  1
-#define BCM2835_PWM_DMAC    2
-#define BCM2835_PWM0_RANGE  4
-#define BCM2835_PWM0_DATA   5
-#define BCM2835_PWM_FIF1    6
-#define BCM2835_PWM1_RANGE  8
-#define BCM2835_PWM1_DATA   9
-
-/* Defines for PWM Clock, word offsets (ie 4 byte multiples) */
-#define BCM2835_PWMCLK_CNTL     40
-#define BCM2835_PWMCLK_DIV      41
-#define BCM2835_PWM_PASSWRD     (0x5A << 24)  /*!< Password to enable setting PWM clock */
-
-#define BCM2835_PWM1_MS_MODE    0x8000  /*!< Run in Mark/Space mode */
-#define BCM2835_PWM1_USEFIFO    0x2000  /*!< Data from FIFO */
-#define BCM2835_PWM1_REVPOLAR   0x1000  /*!< Reverse polarity */
-#define BCM2835_PWM1_OFFSTATE   0x0800  /*!< Ouput Off state */
-#define BCM2835_PWM1_REPEATFF   0x0400  /*!< Repeat last value if FIFO empty */
-#define BCM2835_PWM1_SERIAL     0x0200  /*!< Run in serial mode */
-#define BCM2835_PWM1_ENABLE     0x0100  /*!< Channel Enable */
-
-#define BCM2835_PWM0_MS_MODE    0x0080  /*!< Run in Mark/Space mode */
-#define BCM2835_PWM_CLEAR_FIFO  0x0040  /*!< Clear FIFO */
-#define BCM2835_PWM0_USEFIFO    0x0020  /*!< Data from FIFO */
-#define BCM2835_PWM0_REVPOLAR   0x0010  /*!< Reverse polarity */
-#define BCM2835_PWM0_OFFSTATE   0x0008  /*!< Ouput Off state */
-#define BCM2835_PWM0_REPEATFF   0x0004  /*!< Repeat last value if FIFO empty */
-#define BCM2835_PWM0_SERIAL     0x0002  /*!< Run in serial mode */
-#define BCM2835_PWM0_ENABLE     0x0001  /*!< Channel Enable */
-
-/*! \brief bcm2835PWMClockDivider
-  Specifies the divider used to generate the PWM clock from the system clock.
-  Figures below give the divider, clock period and clock frequency.
-  Clock divided is based on nominal PWM base clock rate of 19.2MHz
-  The frequencies shown for each divider have been confirmed by measurement
-*/
-typedef enum
-{
-    BCM2835_PWM_CLOCK_DIVIDER_2048  = 2048,    /*!< 2048 = 9.375kHz */
-    BCM2835_PWM_CLOCK_DIVIDER_1024  = 1024,    /*!< 1024 = 18.75kHz */
-    BCM2835_PWM_CLOCK_DIVIDER_512   = 512,     /*!< 512 = 37.5kHz */
-    BCM2835_PWM_CLOCK_DIVIDER_256   = 256,     /*!< 256 = 75kHz */
-    BCM2835_PWM_CLOCK_DIVIDER_128   = 128,     /*!< 128 = 150kHz */
-    BCM2835_PWM_CLOCK_DIVIDER_64    = 64,      /*!< 64 = 300kHz */
-    BCM2835_PWM_CLOCK_DIVIDER_32    = 32,      /*!< 32 = 600.0kHz */
-    BCM2835_PWM_CLOCK_DIVIDER_16    = 16,      /*!< 16 = 1.2MHz */
-    BCM2835_PWM_CLOCK_DIVIDER_8     = 8,       /*!< 8 = 2.4MHz */
-    BCM2835_PWM_CLOCK_DIVIDER_4     = 4,       /*!< 4 = 4.8MHz */
-    BCM2835_PWM_CLOCK_DIVIDER_2     = 2,       /*!< 2 = 9.6MHz, fastest you can get */
-    BCM2835_PWM_CLOCK_DIVIDER_1     = 1        /*!< 1 = 4.6875kHz, same as divider 4096 */
-} bcm2835PWMClockDivider;
+#define BCM2835_ST_CS                  0x0000 /*!< System Timer Control/Status */
+#define BCM2835_ST_CLO                         0x0004 /*!< System Timer Counter Lower 32 bits */
+#define BCM2835_ST_CHI                         0x0008 /*!< System Timer Counter Upper 32 bits */
 
 /* Historical name compatibility */
 #ifndef BCM2835_NO_DELAY_COMPATIBILITY
@@ -1864,94 +1747,6 @@ extern "C" {
     extern uint8_t bcm2835_aux_spi_transfer(uint8_t value);
     
     /*! @} */
-
-    /*! \defgroup i2c I2C access
-      These functions let you use I2C (The Broadcom Serial Control bus with the Philips
-      I2C bus/interface version 2.1 January 2000.) to interface with an external I2C device.
-      @{
-    */
-
-    /*! Start I2C operations.
-      Forces RPi I2C pins P1-03 (SDA) and P1-05 (SCL)
-      to alternate function ALT0, which enables those pins for I2C interface.
-      You should call bcm2835_i2c_end() when all I2C functions are complete to return the pins to
-      their default functions
-      \return 1 if successful, 0 otherwise (perhaps because you are not running as root)
-      \sa  bcm2835_i2c_end()
-    */
-    extern int bcm2835_i2c_begin(void);
-
-    /*! End I2C operations.
-      I2C pins P1-03 (SDA) and P1-05 (SCL)
-      are returned to their default INPUT behaviour.
-    */
-    extern void bcm2835_i2c_end(void);
-
-    /*! Sets the I2C slave address.
-      \param[in] addr The I2C slave address.
-    */
-    extern void bcm2835_i2c_setSlaveAddress(uint8_t addr);
-
-    /*! Sets the I2C clock divider and therefore the I2C clock speed.
-      \param[in] divider The desired I2C clock divider, one of BCM2835_I2C_CLOCK_DIVIDER_*,
-      see \ref bcm2835I2CClockDivider
-    */
-    extern void bcm2835_i2c_setClockDivider(uint16_t divider);
-
-    /*! Sets the I2C clock divider by converting the baudrate parameter to
-      the equivalent I2C clock divider. ( see \sa bcm2835_i2c_setClockDivider)
-      For the I2C standard 100khz you would set baudrate to 100000
-      The use of baudrate corresponds to its use in the I2C kernel device
-      driver. (Of course, bcm2835 has nothing to do with the kernel driver)
-    */
-    extern void bcm2835_i2c_set_baudrate(uint32_t baudrate);
-
-    /*! Transfers any number of bytes to the currently selected I2C slave.
-      (as previously set by \sa bcm2835_i2c_setSlaveAddress)
-      \param[in] buf Buffer of bytes to send.
-      \param[in] len Number of bytes in the buf buffer, and the number of bytes to send.
-      \return reason see \ref bcm2835I2CReasonCodes
-    */
-    extern uint8_t bcm2835_i2c_write(const char * buf, uint32_t len);
-
-    /*! Transfers any number of bytes from the currently selected I2C slave.
-      (as previously set by \sa bcm2835_i2c_setSlaveAddress)
-      \param[in] buf Buffer of bytes to receive.
-      \param[in] len Number of bytes in the buf buffer, and the number of bytes to received.
-      \return reason see \ref bcm2835I2CReasonCodes
-    */
-    extern uint8_t bcm2835_i2c_read(char* buf, uint32_t len);
-
-    /*! Allows reading from I2C slaves that require a repeated start (without any prior stop)
-      to read after the required slave register has been set. For example, the popular
-      MPL3115A2 pressure and temperature sensor. Note that your device must support or
-      require this mode. If your device does not require this mode then the standard
-      combined:
-      \sa bcm2835_i2c_write
-      \sa bcm2835_i2c_read
-      are a better choice.
-      Will read from the slave previously set by \sa bcm2835_i2c_setSlaveAddress
-      \param[in] regaddr Buffer containing the slave register you wish to read from.
-      \param[in] buf Buffer of bytes to receive.
-      \param[in] len Number of bytes in the buf buffer, and the number of bytes to received.
-      \return reason see \ref bcm2835I2CReasonCodes
-    */
-    extern uint8_t bcm2835_i2c_read_register_rs(char* regaddr, char* buf, uint32_t len);
-
-    /*! Allows sending an arbitrary number of bytes to I2C slaves before issuing a repeated
-      start (with no prior stop) and reading a response.
-      Necessary for devices that require such behavior, such as the MLX90620.
-      Will write to and read from the slave previously set by \sa bcm2835_i2c_setSlaveAddress
-      \param[in] cmds Buffer containing the bytes to send before the repeated start condition.
-      \param[in] cmds_len Number of bytes to send from cmds buffer
-      \param[in] buf Buffer of bytes to receive.
-      \param[in] buf_len Number of bytes to receive in the buf buffer.
-      \return reason see \ref bcm2835I2CReasonCodes
-    */
-    extern uint8_t bcm2835_i2c_write_read_rs(char* cmds, uint32_t cmds_len, char* buf, uint32_t buf_len);
-
-    /*! @} */
-
     /*! \defgroup st System Timer access
       Allows access to and delays using the System Timer Counter.
       @{
@@ -1967,46 +1762,6 @@ extern "C" {
       \param[in] micros Delay in microseconds
     */
     extern void bcm2835_st_delay(uint64_t offset_micros, uint64_t micros);
-
-    /*! @}  */
-
-    /*! \defgroup pwm Pulse Width Modulation
-      Allows control of 2 independent PWM channels. A limited subset of GPIO pins
-      can be connected to one of these 2 channels, allowing PWM control of GPIO pins.
-      You have to set the desired pin into a particular Alt Fun to PWM output. See the PWM
-      documentation on the Main Page.
-      @{
-    */
-
-    /*! Sets the PWM clock divisor, 
-      to control the basic PWM pulse widths.
-      \param[in] divisor Divides the basic 19.2MHz PWM clock. You can use one of the common
-      values BCM2835_PWM_CLOCK_DIVIDER_* in \ref bcm2835PWMClockDivider
-    */
-    extern void bcm2835_pwm_set_clock(uint32_t divisor);
-    
-    /*! Sets the mode of the given PWM channel,
-      allowing you to control the PWM mode and enable/disable that channel
-      \param[in] channel The PWM channel. 0 or 1.
-      \param[in] markspace Set true if you want Mark-Space mode. 0 for Balanced mode.
-      \param[in] enabled Set true to enable this channel and produce PWM pulses.
-    */
-    extern void bcm2835_pwm_set_mode(uint8_t channel, uint8_t markspace, uint8_t enabled);
-
-    /*! Sets the maximum range of the PWM output.
-      The data value can vary between 0 and this range to control PWM output
-      \param[in] channel The PWM channel. 0 or 1.
-      \param[in] range The maximum value permitted for DATA.
-    */
-    extern void bcm2835_pwm_set_range(uint8_t channel, uint32_t range);
-    
-    /*! Sets the PWM pulse ratio to emit to DATA/RANGE, 
-      where RANGE is set by bcm2835_pwm_set_range().
-      \param[in] channel The PWM channel. 0 or 1.
-      \param[in] data Controls the PWM output ratio as a fraction of the range. 
-      Can vary from 0 to RANGE.
-    */
-    extern void bcm2835_pwm_set_data(uint8_t channel, uint32_t data);
 
     /*! @}  */
 #ifdef __cplusplus
