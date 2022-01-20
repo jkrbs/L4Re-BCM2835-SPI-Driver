@@ -21,33 +21,32 @@ private:
   char *data = new char[8];
 
 public:
-  int op_write(SPI::Rights, L4::Ipc::Array_ref<l4_uint8_t> tbuf, l4_uint32_t size) {
-    if (size > 8)
+  int op_write(SPI::Rights, L4::Ipc::Array_ref<l4_uint8_t, l4_uint32_t> tbuf) {
+    if (tbuf.length > 8)
       return L4_EINVAL;
-    unsigned char* rbuf = new unsigned char[size];
+    unsigned char* rbuf = new unsigned char[tbuf.length];
 #ifdef DEBUG
     printf("&rbuf: %p, &tbuf: %p, rbuf %x, tbuf: %x, len: %d\n", &rbuf, &tbuf.data,
-           rbuf, tbuf.data, size);
+           rbuf, tbuf.data, tbuf.length);
     fflush(NULL);
 #endif
-    bcm2835_spi_transfernb(tbuf.data, rbuf, size);
-    std::memcpy(data, rbuf, MIN(8, size));
+    bcm2835_spi_transfernb(tbuf.data, rbuf, tbuf.length);
+    std::memcpy(data, rbuf, MIN(8, tbuf.length));
 
     return L4_EOK;
   };
-  int op_read(SPI::Rights, L4::Ipc::Array_ref<l4_uint8_t> &rbuf, l4_uint32_t size) {
+  int op_read(SPI::Rights, L4::Ipc::Array_ref<l4_uint8_t, l4_uint32_t> &rbuf) {
     std::memcpy(rbuf.data, data, MIN(8, rbuf.length));
     return L4_EOK;
   };
-  int op_transfer(SPI::Rights, L4::Ipc::Array_ref<const l4_uint8_t, l4_uint32_t> tbuf, L4::Ipc::Array_ref<l4_uint8_t, l4_uint32_t> &rbuf,
-                  l4_uint32_t size) {
+  int op_transfer(SPI::Rights, L4::Ipc::Array_ref<const l4_uint8_t, l4_uint32_t> tbuf, L4::Ipc::Array_ref<l4_uint8_t, l4_uint32_t> &rbuf) {
 #ifdef DEBUG
     printf("&rbuf: %p, &tbuf: %p, rbuf %x, tbuf: %x, len: %d\n", &rbuf.data, &tbuf.data,
-           rbuf.data, tbuf.data, size);
+           rbuf.data, tbuf.data, tbuf.length);
     fflush(NULL);
 #endif
-    bcm2835_spi_transfernb(tbuf.data, rbuf.data, size);
-    std::memcpy(data, rbuf.data, MIN(size, 8));
+    bcm2835_spi_transfernb(tbuf.data, rbuf.data, rbuf.length);
+    std::memcpy(data, rbuf.data, MIN(rbuf.length, 8));
     return L4_EOK;
   };
 
@@ -101,7 +100,7 @@ int main(void) {
   }
   bcm2835_spi_setBitOrder(BCM2835_SPI_BIT_ORDER_MSBFIRST); // The default
   bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);              // The default
-  bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_4);
+  bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_64);
   bcm2835_spi_chipSelect(BCM2835_SPI_CS1);                 // The default
   bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS1, LOW); // the default
   printf("start spi_driver server loop\n");
